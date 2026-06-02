@@ -1,0 +1,5 @@
+module OpenH264 {
+    header "openh264/codec_api.h"
+    header "openh264/codec_ver.h"
+    export *
+}

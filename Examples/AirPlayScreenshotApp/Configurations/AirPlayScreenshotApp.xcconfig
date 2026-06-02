@@ -1,0 +1,10 @@
+CODE_SIGN_STYLE = Automatic
+
+// Place `CodeSigning-Local.xcconfig` (which is git ignored) to override
+// code signing behavior.
+// ```
+// CODE_SIGN_STYLE = Manual
+// DEVELOPMENT_TEAM = ...
+// PROVISIONING_PROFILE_SPECIFIER = ...
+// ```
+#include? "CodeSigning-Local.xcconfig"

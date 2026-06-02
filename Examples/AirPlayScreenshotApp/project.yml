@@ -1,0 +1,56 @@
+name: AirPlayScreenshotApp
+options:
+  bundleIdPrefix: at.niw
+  deploymentTarget:
+    iOS: "26.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  defaultConfig: Debug
+  defaultSourceDirectoryType: syncedFolder
+
+configs:
+  Debug: debug
+  Release: release
+
+packages:
+  AirPlayScreenshot:
+    path: ../..
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: "0.1.0"
+
+targets:
+  AirPlayScreenshotApp:
+    type: application
+    platform: iOS
+    configFiles:
+      Debug: Configurations/AirPlayScreenshotApp.xcconfig
+      Release: Configurations/AirPlayScreenshotApp.xcconfig
+    sources:
+      - path: AirPlayScreenshotApp/Sources
+    dependencies:
+      - package: AirPlayScreenshot
+    info:
+      path: AirPlayScreenshotApp/Info.plist
+      properties:
+        UIBackgroundModes:
+          - audio
+        NSBonjourServices:
+          - _airplay._tcp
+          - _raop._tcp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: at.niw.AirPlayScreenshotApp
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: "Screenshot"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Discover devices on the local network to capture AirPlay screenshot."

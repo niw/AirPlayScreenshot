@@ -1,0 +1,9 @@
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+build/
+.swiftpm/
+Package.resolved
+Configurations/*-Local.xcconfig
+AirPlayScreenshotApp/Info.plist
