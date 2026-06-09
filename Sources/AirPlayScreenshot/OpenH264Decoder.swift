@@ -38,15 +38,15 @@ final class OpenH264Decoder {
             return nil
         }
 
-        var param = SDecodingParam()
+        var decodingParameters = SDecodingParam()
         // Matches openh264's `h264dec` reference sample: UCHAR_MAX selects all
         // spatial layers (SVC). For AVC streams this is the canonical value.
-        param.uiTargetDqLayer = .max
-        param.eEcActiveIdc = ERROR_CON_DISABLE
-        param.bParseOnly = false
-        param.sVideoProperty.eVideoBsType = VIDEO_BITSTREAM_AVC
+        decodingParameters.uiTargetDqLayer = .max
+        decodingParameters.eEcActiveIdc = ERROR_CON_DISABLE
+        decodingParameters.bParseOnly = false
+        decodingParameters.sVideoProperty.eVideoBsType = VIDEO_BITSTREAM_AVC
 
-        guard decoder.pointee!.pointee.Initialize(decoder, &param) == Int(cmResultSuccess.rawValue) else {
+        guard decoder.pointee!.pointee.Initialize(decoder, &decodingParameters) == Int(cmResultSuccess.rawValue) else {
             logger.error("ISVCDecoder Initialize failed")
             WelsDestroyDecoder(decoder)
             return nil
@@ -104,14 +104,14 @@ final class OpenH264Decoder {
         let systemBuffer = bufferInfo.UsrData.sSystemBuffer
         let width = Int(systemBuffer.iWidth)
         let height = Int(systemBuffer.iHeight)
-        guard width > 0, height > 0, let y = yuv[0], let u = yuv[1], let v = yuv[2] else {
+        guard width > 0, height > 0, let yPlane = yuv[0], let uPlane = yuv[1], let vPlane = yuv[2] else {
             return
         }
 
         guard let pixelBuffer = makePixelBuffer(
-            y: y,
-            u: u,
-            v: v,
+            yPlane: yPlane,
+            uPlane: uPlane,
+            vPlane: vPlane,
             width: width,
             height: height,
             strideY: Int(systemBuffer.iStride.0),
@@ -128,9 +128,9 @@ final class OpenH264Decoder {
     // Build an NV12 (BT.601 video range, biplanar) CVPixelBuffer from openh264's
     // I420 output.
     private func makePixelBuffer(
-        y: UnsafePointer<UInt8>,
-        u: UnsafePointer<UInt8>,
-        v: UnsafePointer<UInt8>,
+        yPlane: UnsafePointer<UInt8>,
+        uPlane: UnsafePointer<UInt8>,
+        vPlane: UnsafePointer<UInt8>,
         width: Int,
         height: Int,
         strideY: Int,
@@ -162,7 +162,7 @@ final class OpenH264Decoder {
         let destinationY = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0)!.assumingMemoryBound(to: UInt8.self)
         let destinationStrideY = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0)
         for row in 0 ..< height {
-            memcpy(destinationY + row * destinationStrideY, y + row * strideY, width)
+            memcpy(destinationY + row * destinationStrideY, yPlane + row * strideY, width)
         }
 
         // Plane 1: CbCr interleaved at half resolution.
@@ -171,8 +171,8 @@ final class OpenH264Decoder {
         let destinationUV = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1)!.assumingMemoryBound(to: UInt8.self)
         let destinationStrideUV = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1)
         for row in 0 ..< heightUV {
-            let sourceU = u + row * strideUV
-            let sourceV = v + row * strideUV
+            let sourceU = uPlane + row * strideUV
+            let sourceV = vPlane + row * strideUV
             let destination = destinationUV + row * destinationStrideUV
             for column in 0 ..< widthUV {
                 destination[column * 2] = sourceU[column]

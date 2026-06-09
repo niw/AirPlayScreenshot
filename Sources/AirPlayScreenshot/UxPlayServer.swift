@@ -15,12 +15,12 @@ private let logger = Logger(subsystem: "at.niw.AirPlayScreenshot", category: "Ux
 
 // MARK: - UxPlay callbacks (C → Swift)
 
-// `cls` carries an unretained `UxPlayServer`, set in `start()`.
-private func server(from cls: UnsafeMutableRawPointer?) -> UxPlayServer? {
-    guard let cls else {
+// The opaque context pointer carries an unretained `UxPlayServer`, set in `start()`.
+private func server(from context: UnsafeMutableRawPointer?) -> UxPlayServer? {
+    guard let context else {
         return nil
     }
-    return Unmanaged<UxPlayServer>.fromOpaque(cls).takeUnretainedValue()
+    return Unmanaged<UxPlayServer>.fromOpaque(context).takeUnretainedValue()
 }
 
 // MARK: - UxPlayServer
@@ -97,22 +97,22 @@ final class UxPlayServer: Sendable {
             var callbacks = raop_callbacks_t()
             callbacks.cls = Unmanaged.passUnretained(self).toOpaque()
 
-            callbacks.conn_init = { cls in
-                server(from: cls)?.emit(.connectionInitiated)
+            callbacks.conn_init = { context in
+                server(from: context)?.emit(.connectionInitiated)
             }
-            callbacks.conn_destroy = { cls in
-                server(from: cls)?.emit(.disconnected)
+            callbacks.conn_destroy = { context in
+                server(from: context)?.emit(.disconnected)
             }
-            callbacks.conn_reset = { cls, _ in
-                server(from: cls)?.emit(.disconnected)
+            callbacks.conn_reset = { context, _ in
+                server(from: context)?.emit(.disconnected)
             }
             callbacks.conn_teardown = { _, _, _ in
             }
             callbacks.conn_feedback = { _ in
             }
-            callbacks.report_client_request = { cls, deviceID, model, name, admit in
+            callbacks.report_client_request = { context, deviceID, model, name, admit in
                 admit?.pointee = true
-                server(from: cls)?.emit(.clientConnected(
+                server(from: context)?.emit(.clientConnected(
                     name: name.map { String(cString: $0) } ?? "",
                     model: model.map { String(cString: $0) },
                     deviceID: deviceID.map { String(cString: $0) }
@@ -122,8 +122,8 @@ final class UxPlayServer: Sendable {
             callbacks.video_set_codec = { _, _ in
                 0
             }
-            callbacks.video_process = { cls, _, data in
-                guard let uxPlayServer = server(from: cls),
+            callbacks.video_process = { context, _, data in
+                guard let uxPlayServer = server(from: context),
                       let data = data?.pointee,
                       let bytes = data.data,
                       data.data_len > 0
@@ -143,14 +143,14 @@ final class UxPlayServer: Sendable {
             }
             callbacks.video_reset = { _, _ in
             }
-            callbacks.video_report_size = { cls, sourceWidth, sourceHeight, _, _ in
-                server(from: cls)?.emit(.videoSizeChanged(CGSize(
+            callbacks.video_report_size = { context, sourceWidth, sourceHeight, _, _ in
+                server(from: context)?.emit(.videoSizeChanged(CGSize(
                     width: CGFloat(sourceWidth?.pointee ?? 0),
                     height: CGFloat(sourceHeight?.pointee ?? 0)
                 )))
             }
-            callbacks.mirror_video_running = { cls, isRunning in
-                server(from: cls)?.emit(isRunning ? .mirroringStarted : .mirroringStopped)
+            callbacks.mirror_video_running = { context, isRunning in
+                server(from: context)?.emit(isRunning ? .mirroringStarted : .mirroringStopped)
             }
 
             // Audio: required by handshake but otherwise no-op.

@@ -62,12 +62,14 @@ final class VideoToolboxVideoDecoder: VideoDecoder, @unchecked Sendable {
         AnnexB.enumerateNALUs(in: annexB, includingStartCode: false) { nalu in
             let unit = Data(buffer: nalu)
             switch nalu[0] & 0x1F {
-            case 7: // SPS
+            // SPS
+            case 7:
                 if sps != unit {
                     sps = unit
                     invalidateSession()
                 }
-            case 8: // PPS
+            // PPS
+            case 8:
                 if pps != unit {
                     pps = unit
                     invalidateSession()
@@ -101,48 +103,48 @@ final class VideoToolboxVideoDecoder: VideoDecoder, @unchecked Sendable {
         guard let sps, let pps else {
             return
         }
-        var fmt: CMVideoFormatDescription?
+        var newFormatDescription: CMVideoFormatDescription?
         let status: OSStatus = sps.withUnsafeBytes { spsRaw in
             pps.withUnsafeBytes { ppsRaw in
                 let spsPtr = spsRaw.bindMemory(to: UInt8.self).baseAddress!
                 let ppsPtr = ppsRaw.bindMemory(to: UInt8.self).baseAddress!
                 let pointers: [UnsafePointer<UInt8>] = [spsPtr, ppsPtr]
                 let sizes: [Int] = [sps.count, pps.count]
-                return pointers.withUnsafeBufferPointer { pBuf in
-                    sizes.withUnsafeBufferPointer { sBuf in
+                return pointers.withUnsafeBufferPointer { pointerBuffer in
+                    sizes.withUnsafeBufferPointer { sizeBuffer in
                         CMVideoFormatDescriptionCreateFromH264ParameterSets(
                             allocator: kCFAllocatorDefault,
                             parameterSetCount: 2,
-                            parameterSetPointers: pBuf.baseAddress!,
-                            parameterSetSizes: sBuf.baseAddress!,
+                            parameterSetPointers: pointerBuffer.baseAddress!,
+                            parameterSetSizes: sizeBuffer.baseAddress!,
                             nalUnitHeaderLength: 4,
-                            formatDescriptionOut: &fmt
+                            formatDescriptionOut: &newFormatDescription
                         )
                     }
                 }
             }
         }
-        guard status == noErr, let fmt else {
+        guard status == noErr, let newFormatDescription else {
             logger.error("CMVideoFormatDescriptionCreate failed (\(status))")
             return
         }
-        formatDescription = fmt
+        formatDescription = newFormatDescription
 
-        let attrs: [CFString: Any] = [
+        let attributes: [CFString: Any] = [
             kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
             kCVPixelBufferIOSurfacePropertiesKey: [:],
         ]
         var session: VTDecompressionSession?
-        let st2 = VTDecompressionSessionCreate(
+        let sessionStatus = VTDecompressionSessionCreate(
             allocator: kCFAllocatorDefault,
-            formatDescription: fmt,
+            formatDescription: newFormatDescription,
             decoderSpecification: nil,
-            imageBufferAttributes: attrs as CFDictionary,
+            imageBufferAttributes: attributes as CFDictionary,
             outputCallback: nil,
             decompressionSessionOut: &session
         )
-        guard st2 == noErr, let session else {
-            logger.error("VTDecompressionSessionCreate failed (\(st2))")
+        guard sessionStatus == noErr, let session else {
+            logger.error("VTDecompressionSessionCreate failed (\(sessionStatus))")
             return
         }
         self.session = session
@@ -161,7 +163,7 @@ final class VideoToolboxVideoDecoder: VideoDecoder, @unchecked Sendable {
         }
 
         var blockBuffer: CMBlockBuffer?
-        let st = CMBlockBufferCreateWithMemoryBlock(
+        let blockBufferStatus = CMBlockBufferCreateWithMemoryBlock(
             allocator: kCFAllocatorDefault,
             memoryBlock: avccBytes,
             blockLength: avccLength,
@@ -172,14 +174,14 @@ final class VideoToolboxVideoDecoder: VideoDecoder, @unchecked Sendable {
             flags: 0,
             blockBufferOut: &blockBuffer
         )
-        guard st == noErr, let blockBuffer else {
+        guard blockBufferStatus == noErr, let blockBuffer else {
             avccBytes.deallocate()
             return
         }
 
         var sampleBuffer: CMSampleBuffer?
         var sampleSize = avccLength
-        let st2 = CMSampleBufferCreateReady(
+        let sampleBufferStatus = CMSampleBufferCreateReady(
             allocator: kCFAllocatorDefault,
             dataBuffer: blockBuffer,
             formatDescription: formatDescription,
@@ -190,7 +192,7 @@ final class VideoToolboxVideoDecoder: VideoDecoder, @unchecked Sendable {
             sampleSizeArray: &sampleSize,
             sampleBufferOut: &sampleBuffer
         )
-        guard st2 == noErr, let sampleBuffer else {
+        guard sampleBufferStatus == noErr, let sampleBuffer else {
             return
         }
 
