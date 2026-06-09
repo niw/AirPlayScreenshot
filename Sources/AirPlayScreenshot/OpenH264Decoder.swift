@@ -18,7 +18,7 @@ private let logger = Logger(subsystem: "at.niw.AirPlayScreenshot", category: "Op
 //
 // `decode(annexB:)` must be called serially (the underlying `ISVCDecoder` is
 // not thread-safe); `latestPixelBuffer` is safe to read from any thread.
-final class OpenH264Decoder: @unchecked Sendable {
+final class OpenH264Decoder {
     // In C, `ISVCDecoder` is `const ISVCDecoderVtbl *`, so methods are
     // invoked through the vtbl: `decoder.pointee!.pointee.Method(decoder, ...)`.
     private let decoder: UnsafeMutablePointer<ISVCDecoder?>

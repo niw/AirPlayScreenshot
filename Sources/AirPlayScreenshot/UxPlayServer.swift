@@ -27,7 +27,7 @@ private func server(from cls: UnsafeMutableRawPointer?) -> UxPlayServer? {
 
 // AirPlay mirroring receiver backed by UxPlay's raop server. Advertises
 // itself on Bonjour and emits received events and video data.
-final class UxPlayServer: @unchecked Sendable {
+final class UxPlayServer: Sendable {
     struct VideoData {
         var data: Data
         var isH265: Bool

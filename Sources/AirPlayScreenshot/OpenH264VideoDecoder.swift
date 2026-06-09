@@ -13,7 +13,7 @@ import UIKit
 /// Pure-software H.264 decoder backed by Cisco openh264. Works regardless of
 /// app lifecycle state (foreground/background) because it doesn't go through
 /// VideoToolbox, at the cost of more CPU.
-final class OpenH264VideoDecoder: VideoDecoder, @unchecked Sendable {
+final class OpenH264VideoDecoder: VideoDecoder {
     private let queue = DispatchQueue(label: "at.niw.AirPlayScreenshot.openh264", qos: .userInitiated)
 
     // Created in `start()` and read from the decode queue and capture
